@@ -139,13 +139,14 @@ class MainWindow(Screen):
         Clock.schedule_interval(self.update,refreshRate)
 
     def update(self, *args):
-        global Recording,RecordingCanceled,ix, record_time,t_start,Sampleproc
+        global Recording,RecordingCanceled,ix, record_time,t_start,Sampleproc,CSV_file_name
         if self.EnableRecord: 
             if Recording:
                 self.ids['grabar'].background_color = VERDE
                 self.ids['grabar'].text = str(record_time - datetime.datetime.now())[2:7]
                 if (record_time - datetime.datetime.now()) < datetime.timedelta(0):
                     os.killpg(os.getpgid(Sampleproc.pid), 15)
+                    Sampleproc = Popen("python3 computeStats.py " +CSV_file_name,stdout=PIPE, stderr=PIPE, shell=True,preexec_fn=os.setsid)
                     Recording=False 
                     self.EnableRecord = False
             if RecordingCanceled:
@@ -253,10 +254,7 @@ class MainWindow(Screen):
         
 
     def recordButton(self):
-       #if  self.EnableRecord:
-           # self.ids['grabar'].background_color = (0.15, 0.15, 0.15, 1.0)
-           # self.EnableRecord = False
-            
+                  
         if not(self.EnableShow) and not(self.EnableGraph) and not(self.EnableRecord) :
             App.get_running_app().root.current = "record"
             self.manager.transition.direction = "down"
