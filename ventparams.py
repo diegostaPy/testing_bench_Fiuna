@@ -1,131 +1,93 @@
-import datetime
-import csv
-import time, serial
-import ADS1256
-import RPi.GPIO as GPIO
 
-limite = 0.5
-
+FLOW_THRESHOLD_High = 0.1# LPM
+FLOW_THRESHOLD_Low = 1# LPM
 class VentilatorParams():
     def __init__(self):
+        self.count=0 
         self.pressure = 0.0
         self.flow = 0.0
-        self.oxygen = 0.0
         self.flow_last = 0.0
+        self.oxygen = 0.0
         self.volume = 0.0
-        self.pip = {'current': None, 'auxiliar': None}
-        self.peep = {'current': None, 'auxiliar': None}
-        self.ti = {'current': None, 'last': None, 'new': None}
-        self.te = {'current': None, 'last': None, 'new': None}
-        self.ie = {'current': None, 'new_calculation': True}
-        self.bpm = {'current': None, 'new_calculation': True}
-        self.pif = {'current': None, 'auxiliar': None}
-        self.vti = {'current': None, 'auxiliar': None}
         self.time = 0.0
-    
-    def calculatePIP(self):
-        if self.flow > limite:
-            if self.pip['auxiliar'] is None:
-                self.pip['auxiliar'] = self.pressure
-                
-            elif self.pressure > self.pip['auxiliar']:
-                self.pip['auxiliar'] = self.pressure
-        
-        elif self.flow <= limite and self.pip['auxiliar'] is not None:
-            self.pip['current'] = self.pip['auxiliar']
-            self.pip['auxiliar'] = None
-        
-    def calculatePEEP(self):        
-        if self.flow <= limite:
-            if self.peep['auxiliar'] is None:
-                self.peep['auxiliar'] = self.pressure
-                
-            elif self.pressure < self.peep['auxiliar']:
-                self.peep['auxiliar'] = self.pressure
-        
-        elif self.flow > limite and self.peep['auxiliar'] is not None:
-            self.peep['current'] = self.peep['auxiliar']
-            self.peep['auxiliar'] = None
-            
-    def calculateTI(self):
-        if self.flow > limite and self.ti['last'] is None:
-            self.ti['last'] = int(round(time.time()*1000))
-            self.ti['new'] = None
-            
-        elif self.flow <= limite and self.ti['new'] is None and self.ti['last'] is not None:
-            self.ti['new'] = int(round(time.time()*1000))
-            self.ti['current'] = (self.ti['new'] - self.ti['last'])/1000
-            self.ti['last'] = None
-    
-    def calculateTE(self):
-        if self.flow <= limite and self.te['last'] is None:
-            self.te['last'] = int(round(time.time()*1000))
-            self.te['new'] = None
-            
-        elif self.flow > limite and self.te['new'] is None and self.te['last'] is not None:
-            self.te['new'] = int(round(time.time()*1000))
-            self.te['current'] = (self.te['new'] - self.te['last'])/1000
-            self.te['last'] = None
-    
-    
-    def calculateIE(self):
-        if self.flow > limite and self.ie['new_calculation'] and self.te['current'] is not None and self.ti['current'] is not None:
-            self.ie['current'] = float(self.te['current']/self.ti['current'])
-            self.ie['new_calculation'] = False
-        
-        elif self.flow <= limite and not self.ie['new_calculation']:
-            self.ie['new_calculation'] = True
-    
-    def calculateBPM(self):
-        if self.flow > limite and self.bpm['new_calculation'] and self.te['current'] is not None and self.ti['current'] is not None:
-            self.bpm['current'] = 60.0/(self.te['current']+self.ti['current'])
-            self.bpm['new_calculation'] = False
-        
-        elif self.flow <= 0.5 and not self.bpm['new_calculation']:
-            self.bpm['new_calculation'] = True
-            
+        self.time_last = 0.0
+        self.fio2_accu=None
+        self.fio2_mean=None
+        self.pip = None
+        self.peep = None
+        self.ti = None
+        self.te =None
+        self.ie = None
+        self.bpm = None
+        self.pif_i = None
+        self.pef_i = None
+        self.pif = None
+        self.pef = None
+        self.vti = None
+        self.vte= None
+        self.tstartI=None
+        self.tstartE=None
+        self.MaxPI=None
+        self.MinPE=None
+        self.tend=None
+        self.state=None # 1 inspiration 2 expiration 
+        self.NewStatsReady=0 # 0 no read 1 ready
+    def calculateVolume(self):
+        deltaT=self.time-self.time_last
+        self.volume = self.volume + self.flow*deltaT/(60.0)*1000
+        self.flow_last = self.flow
+        self.time_last=self.time
+    def calculateFio2(self):
+        if (self.state==1 or self.state==2):
+            self.fio2_accu=self.fio2_accu+self.oxygen
     def calculatePIF(self):
-        if self.flow > limite:
-            if self.pif['auxiliar'] is None:
-                self.pif['auxiliar'] = self.flow
-                
-            elif self.flow > self.pif['auxiliar']:
-                self.pif['auxiliar'] = self.flow
-        
-        elif self.flow <= limite and self.pif['auxiliar'] is not None:
-            self.pif['current'] = self.pif['auxiliar']
-            self.pif['auxiliar'] = None
-    
-
-    def calculateVTI(self):
-        if self.flow > limite:
-            self.volume = self.volume + self.flow*0.025/(60.0)*1000
-            self.flow_last = self.flow
-            if self.vti['auxiliar'] is None:
-                self.volume = 0.0
-                self.flow_last = 0.0
-                self.volume = self.volume + self.flow*0.025/(60.0)*1000
-                self.flow_last = self.flow
-                self.vti['auxiliar'] = self.volume
-                
-            elif self.volume > self.vti['auxiliar']:
-                self.vti['auxiliar'] = self.volume
-            return
-        
-        elif self.flow <= limite and self.vti['auxiliar'] is not None:          
-            self.vti['current'] = self.vti['auxiliar']
-            self.vti['auxiliar'] = None
+        if (self.state==1 and self.flow>self.pif_i):
+            self.pif_i=self.flow
+    def calculatePEF(self):
+        if (self.state==2 and abs(self.flow)>abs(self.pef_i)):
+            self.pef_i=abs(self.flow)
+    def calculateMaxPressure(self):
+        if (self.state==1 and self.pressure>self.MaxPI):
+            self.MaxPI=self.pressure
+    def calculateMinPressure(self):
+        if (self.state==2 and self.pressure<self.MinPE):
+            self.MinPE=self.pressure
             
-        self.volume = self.volume + self.flow*0.025/(60.0)*1000
-        self.flow_last = self.flow  
+    def calculateStats(self):
+        self.fio2_mean=self.fio2_accu/self.count
+        self.te=self.time- self.tstartE
+        self.vte=self.volume-self.vti
+        self.tend=self.time
+        self.ie=self.te/self.ti
+        self.bpm=(60.0/(self.ti+self.te))
+        self.pip=self.MaxPI
+        self.peep=self.MinPE
+        self.pif=self.pif_i
+        self.pef=self.pef_i
+        self.NewStatsReady=1
 
-    
-    def calculateALL(self):
-        self.calculatePIP()
-        self.calculatePEEP()
-        self.calculateTI()
-        self.calculateTE()
-        self.calculateIE()
-        self.calculateBPM()
-        self.calculatePIF()
-        self.calculateVTI()
+    def statsReaded(self):
+        self.NewStatsReady=0
+        
+    def defineState(self):
+        
+        if self.flow >FLOW_THRESHOLD_High and self.flow_last<FLOW_THRESHOLD_High :
+            if (self.state==2):
+                self.calculateStats()
+            self.state=1
+            self.tstartI=self.time
+            self.MaxPI=self.pressure
+            self.volume=0
+            self.count=0
+            self.fio2_accu=0
+            self.pif_i=self.flow
+            
+        elif self.flow <-FLOW_THRESHOLD_Low  and self.flow_last>=0 and self.state==1:   
+            self.state=2
+            self.MinPE=self.pressure
+            self.ti=self.time-self.tstartI
+            self.tstartE=self.time
+            self.vti=self.volume
+            self.pef_i=self.flow
+        self.count=self.count+1
+       

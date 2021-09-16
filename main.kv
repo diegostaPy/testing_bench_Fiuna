@@ -111,8 +111,8 @@ WindowManager:
             Spinner:
                 id: spinner_id
                 pos_hint: {'center': (.5, .5)}
-                text: "Storages"
-                values: ["USB 1", "USB 2", "USB 3"]
+                text: "."
+                values: ["."]
 
             Label:
                 text: ''
@@ -127,7 +127,8 @@ WindowManager:
                 size_hint: 0.5, 0.5
                 on_release:
                     root.accept()
-                                        
+
+
             Button:
                 font_size: self.height/2
                 text: "Cancelar"
@@ -166,26 +167,24 @@ WindowManager:
                     id: graph_p
                     xlabel: ''
                     ylabel: 'Presion (cmH20)'
-                    x_ticks_minor: 5
-                    x_ticks_major: 2
-                    y_ticks_major: 20
+                    x_ticks_major: 5
+                    y_ticks_major: 10
                     y_grid_label: True
                     x_grid_label: True
                     padding: 3
                     x_grid: True
                     y_grid: True
                     xmin: 0
-                    xmax: 10
-                    ymin: -5
-                    ymax: 100
+                    xmax: 20
+                    ymin: -10
+                    ymax: 60
 
 
                 Graph:
                     id: graph_f
                     xlabel: ''
                     ylabel: 'Flujo (l/min)'
-                    x_ticks_minor: 5
-                    x_ticks_major: 2
+                    x_ticks_major: 5
                     y_ticks_major: 20
                     y_grid_label: True
                     x_grid_label: True
@@ -193,17 +192,16 @@ WindowManager:
                     x_grid: True
                     y_grid: True
                     xmin: 0
-                    xmax: 10
-                    ymin: -80
-                    ymax: 80
+                    xmax: 20
+                    ymin: -60
+                    ymax: 60
 
 
                 Graph:
                     id: graph_v
                     xlabel: 'Tiempo (s)'
                     ylabel: 'Volumen (ml)'
-                    x_ticks_minor: 5
-                    x_ticks_major: 2
+                    x_ticks_major: 5
                     y_ticks_major: 100
                     y_grid_label: True
                     x_grid_label: True
@@ -211,7 +209,7 @@ WindowManager:
                     x_grid: True
                     y_grid: True
                     xmin: 0
-                    xmax: 10
+                    xmax: 20
                     ymin: -100
                     ymax: 500
 
