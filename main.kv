@@ -12,6 +12,14 @@ WindowManager:
             pos: self.pos
             size: self.size
     font_size: self.width/6
+<TemHumText>:
+    canvas.before:
+        Color:
+            rgba: 0.15, 0.15, 0.15, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    font_size: self.width/8
 
 
 <ButtonNew@Button>:
@@ -360,7 +368,7 @@ WindowManager:
                     Label:
                         size_hint: 1, 0.3
                         font_size: self.height
-                        text: "s"
+                        text: "%"
                         text_size: self.size
                         valign: 'top'
                         halign: 'right'
@@ -513,7 +521,79 @@ WindowManager:
                         valign: 'top'
                         halign: 'right'
                         color: 1, 1, 1, 1
+            # Flujo Inspiratorio Pico
+                BoxLayout:
+                    orientation: 'vertical'
+                    canvas.before:
+                        Color:
+                            rgba: 0.15, 0.15, 0.15, 1
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
 
+                    Label:
+                        size_hint: 1, 0.4
+                        font_size: self.height
+                        text: "PEF"
+                        text_size: self.size
+                        valign: 'top'
+                        halign: 'left'
+                        color: 1, 1, 1, 1
+
+                    Label:
+                        size_hint: 1, 1
+                        font_size: self.height/2
+                        text: root.pef_string
+                        text_size: self.size
+                        valign: 'middle'
+                        halign: 'right'
+                        color: 1, 1, 1, 1
+
+                    Label:
+                        size_hint: 1, 0.3
+                        font_size: self.height
+                        text: "l/min"
+                        text_size: self.size
+                        valign: 'top'
+                        halign: 'right'
+                        color: 1, 1, 1, 1
+
+                # Volumen tidal
+                BoxLayout:
+                    orientation: 'vertical'
+                    canvas.before:
+                        Color:
+                            rgba: 0.15, 0.15, 0.15, 1
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+
+                    Label:
+                        size_hint: 1, 0.4
+                        font_size: self.height
+                        text: "Vte"
+                        text_size: self.size
+                        valign: 'top'
+                        halign: 'left'
+                        color: 1, 1, 1, 1
+
+                    Label:
+                        size_hint: 1, 1
+                        font_size: self.height/2
+                        text: root.vte_string
+                        text_size: self.size
+                        valign: 'middle'
+                        halign: 'right'
+                        color: 1, 1, 1, 1
+
+                    Label:
+                        size_hint: 1, 0.3
+                        font_size: self.height
+                        text: "ml"
+                        text_size: self.size
+                        valign: 'top'
+                        halign: 'right'
+                        color: 1, 1, 1, 1
         BoxLayout:
             orientation: 'horizontal'
             size_hint: (1, .1)
@@ -556,11 +636,9 @@ WindowManager:
                     on_release:
                         root.recordButton()
 
-                ButtonNew:
-                    id: info
-                    text: "Info"
+                TemHumText:
+                    id: temhumtext
                     size_hint: 1, 1
-                    on_release: root.infoButton()
 
             BoxLayout:
                 orientation: 'horizontal'
@@ -575,14 +653,16 @@ WindowManager:
                         pos: self.pos
                         size: self.size
 
+               
+
+                ClockText:
+                    id: clocktext
+                    size_hint: 1,1
+                    
                 ButtonNew:
                     id: salir
                     font_size: self.width/6
                     text: "Salir"
                     size_hint: 1, 1
                     on_release: root.exitButton()
-
-                ClockText:
-                    id: clocktext
-                    size_hint: 1,1
 

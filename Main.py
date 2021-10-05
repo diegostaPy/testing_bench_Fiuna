@@ -6,7 +6,7 @@ import os
 import numpy as np
 from subprocess import Popen,PIPE
 import time
-from ventparamsNew import VentilatorParams
+from ventparams import VentilatorParams
 from kivy.properties import ObjectProperty, StringProperty
 from kivy.config import Config
 from kivy.app import App
@@ -20,6 +20,11 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from pipyadc.ADS1256_definitions import *
 from pipyadc import ADS1256
 import pipyadc.ADS1256_default_config as myconfig_2
+
+from smbus2 import SMBus
+I2C_ADDRESS=0x01
+READ_TEMPERATURE_CMD=0xB2
+READ_HUMIDITY_CMD=0xB3
 
 fio2= POS_AIN0|NEG_AINCOM
 pressure= POS_AIN1|NEG_AINCOM
@@ -49,7 +54,7 @@ ix=0
 
 
 refreshRate=1.0/30.0
-FILTER_SIZE = 5
+FILTER_SIZE = 3
 
 dirPath='logs'
 if not os.path.isdir(dirPath):
@@ -97,12 +102,29 @@ class RecordWindow(Screen):
 class ClockText(Label):
     def __init__(self, *args, **kwargs):
         super(ClockText, self).__init__(*args, **kwargs)
-        Clock.schedule_interval(self.update, 1)
+        Clock.schedule_interval(self.update, 2)
 
     def update(self, *args):
         self.text = time.strftime('%I:%M:%S %p')
-    
+class TemHumText(Label):
+    def __init__(self, *args, **kwargs):
+        super(TemHumText, self).__init__(*args, **kwargs)
+        Clock.schedule_interval(self.update, 10)
+        self.readData()
 
+    def update(self, *args):
+        self.readData()
+    def readData(self, *args):
+        bus = SMBus(1)
+        read = bus.read_byte_data(I2C_ADDRESS,READ_TEMPERATURE_CMD)
+        temp=read<<8
+        read = bus.read_byte_data(I2C_ADDRESS,READ_TEMPERATURE_CMD)
+        temp=temp+read
+        read = bus.read_byte_data(I2C_ADDRESS,READ_HUMIDITY_CMD)
+        hum=read<<8
+        read = bus.read_byte_data(I2C_ADDRESS,READ_HUMIDITY_CMD)
+        hum=hum+read
+        self.text = str(temp/100)+"°C "+str(hum/100)+" %"
 class ConfigTab(TabbedPanel):
     pass
    
@@ -116,12 +138,15 @@ class MainWindow(Screen):
     pip_string = StringProperty("--")
     peep_string = StringProperty("--")
     ti_string = StringProperty("--")
+    te_string = StringProperty("--")
     fio2_string= StringProperty("--")
     ie_string = StringProperty("--")
     bpm_string = StringProperty("--")
     pif_string = StringProperty("--")
+    pef_string = StringProperty("--")
     vti_string = StringProperty("--")
-
+    vte_string = StringProperty("--")
+    
 
     def __init__(self, *args, **kwargs):
         super(MainWindow, self).__init__(*args, **kwargs)
@@ -200,11 +225,14 @@ class MainWindow(Screen):
                    self.pip_string = str(round(self.parameters.pip, 1))
                    self.peep_string = str(round(self.parameters.peep, 1))
                    self.ti_string = str(round(self.parameters.ti, 2))
+                   self.te_string = str(round(self.parameters.te, 2))
                    self.fio2_string = str(round(self.parameters.fio2_mean, 1))
                    self.ie_string = str(round(self.parameters.ie, 1))
                    self.bpm_string = str(round(self.parameters.bpm, 1))
                    self.pif_string = str(round(self.parameters.pif, 1))
+                   self.pef_string = str(round(self.parameters.pef, 1))
                    self.vti_string = str(int(self.parameters.vti))
+                   self.vte_string = str(int(self.parameters.vte))
                    self.parameters.statsReaded()
             else:
                 self.pip_string = "--"
