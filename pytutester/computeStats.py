@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
 import sys
-import os
 import pandas as pd
 import numpy as np
 from scipy import integrate
 from scipy import signal
-from scipy import integrate
 fs=80
 cutoff=5
 lpf=signal.firwin(40, cutoff/fs, window='hamming')
@@ -23,14 +21,15 @@ def hyst(x, th_lo, th_hi, initial = False):
 filename = sys.argv[1]
 
 
-medidas=pd.read_csv(filename)
-medidas['time']=medidas['time'].values-medidas['time'].values[0]
-medidas.loc[medidas[' flow'].values>100,' flow']=100
-medidas.loc[medidas[' flow'].values<-100,' flow']=-100
+medidas=pd.read_csv(filename,comment="#")
+
+medidas['time']=medidas['Timestamp'].values-medidas['Timestamp'].values[0]
+medidas.loc[medidas['flow'].values>100,'flow']=100
+medidas.loc[medidas['flow'].values<-100,'flow']=-100
 medidas.set_index(["time"],drop=True, inplace=True)
 medidas['time']=medidas.index.values
-medidas['flow_mlpf']=signal.medfilt(medidas[' flow'].values,  11)
-medidas['pressure_mlpf']=signal.medfilt(medidas[' pressure'].values, 1)
+medidas['flow_mlpf']=signal.medfilt(medidas['flow'].values,  11)
+medidas['pressure_mlpf']=signal.medfilt(medidas['pressure'].values, 1)
 medidas.index = pd.to_datetime( medidas.index, unit='s')
 medidas=medidas.resample("5ms").median()
 medidas = medidas.interpolate(method='linear').dropna()
@@ -43,13 +42,17 @@ Ti_end=np.where(np.diff(cross*2-1,1)<0)[0]
              #Ti_ini=np.where(np.logical_and(np.logical_and(np.diff(np.concatenate(([0], np.logical_or(x >= th_hi,x <= th_lo)))),x >= th_hi),np.diff(np.concatenate(([0],medidas['pressure_mlpf'])))<0))[0]
              #Ti_end=np.where(np.logical_and(np.logical_and(np.diff(np.concatenate(([0], np.logical_or(x >= th_hi,x <= th_lo)))),x<th_lo),np.diff(np.concatenate(([0],medidas['pressure_mlpf'])))>0))[0]
 Ti_end=Ti_end[Ti_end>0]
+if(len(Ti_end)==0 or len(Ti_ini)==0):
+    print("no hay datos")
+    exit()
+
 if(Ti_ini[0]>Ti_end[0]):
     Ti_end=Ti_end[1:]
 k=0
 
 medidas['volumen_mlpf']=np.zeros_like(medidas['flow_mlpf'].values)
 
-dfBancoStats=pd.DataFrame(columns=['Ti s', 'Te s','Vti l','Vte l', 'I:E  ', 'BPM  ','PIP cmH2O','PEEP cmH2O','PIF lmin'])
+dfBancoStats=pd.DataFrame(columns=['Ti s', 'Te s','Vti l','Vte l', 'I:E  ', 'BPM  ','PIP cmH2O','PEEP cmH2O','PIF lmin','PEF lmin','FiO2'])
 
 for ini,end,next_ini in zip(Ti_ini[:-1].tolist(),Ti_end[:-1].tolist(),Ti_ini[1:-1].tolist()):
     medidas.loc[medidas.index.values[ini:next_ini],'volumen_mlpf']= np.hstack((np.array(0),integrate.cumtrapz(medidas['flow_mlpf'].values[ini:next_ini]/60, medidas.time.values[ini:next_ini])))
@@ -65,10 +68,13 @@ for ini,end,next_ini in zip(Ti_ini[:-1].tolist(),Ti_end[:-1].tolist(),Ti_ini[1:-
     dfBancoStats.loc[k,'PIP cmH2O']=(medidas.pressure_mlpf.values[ini:next_ini].max()).astype(float)
     dfBancoStats.loc[k,'PEEP cmH2O']=(medidas.pressure_mlpf.values[end:next_ini].min()).astype(float)
     dfBancoStats.loc[k,'PIF lmin']=(medidas.flow_mlpf.values[ini:next_ini].max()).astype(float)
+    dfBancoStats.loc[k,'PEF lmin']=(medidas.flow_mlpf.values[end:next_ini].min()).astype(float)
+    dfBancoStats.loc[k,'FiO2']=(medidas.fi02.values[ini:next_ini].mean()).astype(float)
+
     dfBancoStats.loc[k,'Vti l']=(integrate.simps(medidas['flow_mlpf'].values[ini:(end-1)]/60, medidas.time.values[ini:(end-1)])).astype(float)
     dfBancoStats.loc[k,'Vte l']=(integrate.simps(medidas['flow_mlpf'].values[end:next_ini]/60, medidas.time.values[end:next_ini]) ).astype(float) 
     k=k+1
-             
+dfBancoStats.to_csv("stats_"+filename)             
     
 
 

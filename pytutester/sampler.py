@@ -3,15 +3,28 @@
 """PiPyADC: Example file for class ADS1256 in module pipyadc:
 """
 import sys
-import time
 import numpy as np
-import itertools
 import datetime as dt
 from pipyadc.ADS1256_definitions import *
 from pipyadc import ADS1256
 # In this example, we pretend myconfig_2 was a different configuration file
 # named "myconfig_2.py" for a second ADS1256 chip connected to the SPI bus.
 import pipyadc.ADS1256_default_config as myconfig_2
+from smbus2 import SMBus
+I2C_ADDRESS=0x01
+READ_TEMPERATURE_CMD=0xB2
+READ_HUMIDITY_CMD=0xB3
+def readData():
+    bus = SMBus(1)
+    read = bus.read_byte_data(I2C_ADDRESS,READ_TEMPERATURE_CMD)
+    temp=read<<8
+    read = bus.read_byte_data(I2C_ADDRESS,READ_TEMPERATURE_CMD)
+    temp=temp+read
+    read = bus.read_byte_data(I2C_ADDRESS,READ_HUMIDITY_CMD)
+    hum=read<<8
+    read = bus.read_byte_data(I2C_ADDRESS,READ_HUMIDITY_CMD)
+    hum=hum+read
+    return temp/100, hum/100    
 #import configv2 as myconfig_22
 ### START EXAMPLE ###
 ################################################################################
@@ -98,24 +111,25 @@ def do_measurement():
     # Numpy 2D array as buffer for raw input samples. Each row is one complete
     # sequence of samples for eight input channel pin pairs. Each column stores
     # the number of FILTER_SIZE samples for each channel.
+    temp, hum=readData()
+   
     
     header =[]            
-    header.extend(["Row_id","pressure","flow","fi02","Timestamp"])   # Define a CSV header 
+    header.extend(["Timestamp","pressure","flow","fi02"])   # Define a CSV header 
     filename = sys.argv[1]
-    with open(filename,"w") as file:                                # With the opened file...
+    with open(filename,"w") as file:
+       file.write("#"+str(temp)+",°C, "+str(hum)+",%hum\n")                             # With the opened file...
        file.write(",".join(str(value) for value in header)+ "\n")   # Write each value from the header 
     k=0
     with open(filename,"a") as file:           # Open the file into Append mode (enter data without erase previous data)
 
         while True:
-            read=ads2.read_sequence(CH_SEQUENCE)# *  CH_GAIN
+            read=ads2.read_sequence(CH_SEQUENCE)*  CH_GAIN
             _pressure = 105.0/4.0*(read[1]-0.5) - 5.0
             _flow =(-1)*(read[2]-2.5)*125.0
             _fio2 =(39)*(read[0]-3.0) + 100.0
-            file.write(str(k) + "," + str(_pressure) + "," + str(_flow) + ", " + str(_fio2)  + "," + str(dt.datetime.now().timestamp()) + "\r\n")
+            file.write(str(dt.datetime.now().timestamp()) + "," + str(_pressure) + "," + str(_flow) + ", " + str(_fio2) +"\n")
             k=k+1
-
-   
 
 ### END EXAMPLE ###
 

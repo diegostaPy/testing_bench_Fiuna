@@ -1,0 +1,2 @@
+pypiadc
+scipy

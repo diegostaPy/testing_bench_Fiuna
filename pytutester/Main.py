@@ -54,14 +54,7 @@ ix=0
 
 
 refreshRate=1.0/30.0
-FILTER_SIZE = 3
-
-dirPath='logs'
-if not os.path.isdir(dirPath):
-    os.mkdir(dirPath)
-os.system('rm '+dirPath+'/*')
-logfilename=dirPath+'/log.csv'
-
+FILTER_SIZE = 5
 
 
 
