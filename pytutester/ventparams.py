@@ -1,6 +1,5 @@
 
-FLOW_THRESHOLD_High = 0.1# LPM
-FLOW_THRESHOLD_Low = 1# LPM
+FLOW_THRESHOLD = 1# LPM
 class VentilatorParams():
     def __init__(self):
         self.count=0 
@@ -37,6 +36,9 @@ class VentilatorParams():
         self.volume = self.volume + self.flow*deltaT/(60.0)*1000
         self.flow_last = self.flow
         self.time_last=self.time
+        if(self.tstartI):
+            if((self.time-self.tstartI)>10):
+                self.state=None    
     def calculateFio2(self):
         if (self.state==1 or self.state==2):
             self.fio2_accu=self.fio2_accu+self.oxygen
@@ -71,7 +73,7 @@ class VentilatorParams():
         
     def defineState(self):
         
-        if self.flow >FLOW_THRESHOLD_High and self.flow_last<FLOW_THRESHOLD_High :
+        if self.flow >FLOW_THRESHOLD and self.flow_last<FLOW_THRESHOLD and abs(self.volume)>0.2 :
             if (self.state==2):
                 self.calculateStats()
             self.state=1
@@ -82,7 +84,7 @@ class VentilatorParams():
             self.fio2_accu=0
             self.pif_i=self.flow
             
-        elif self.flow <-FLOW_THRESHOLD_Low  and self.flow_last>=0 and self.state==1:   
+        elif self.flow <-FLOW_THRESHOLD  and self.flow_last>-FLOW_THRESHOLD and self.state==1:   
             self.state=2
             self.MinPE=self.pressure
             self.ti=self.time-self.tstartI

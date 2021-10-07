@@ -39,10 +39,10 @@ Config.set('kivy', 'keyboard_mode', 'systemanddock')
 #Config.set('graphics', 'show_cursor', '0')
 #Config.set('graphics', 'height', '720')
 #Config.set('graphics', 'width', '1080')
-Config.set('graphics', 'fullscreen', '0')
-Config.set('graphics', 'show_cursor', '1')
-Config.set('graphics', 'height', '440')
-Config.set('graphics', 'width', '600')
+Config.set('graphics', 'fullscreen', '1')
+Config.set('graphics', 'show_cursor', '0')
+Config.set('graphics', 'height', '480')
+Config.set('graphics', 'width', '800')
 
 Config.write()
 
@@ -53,8 +53,8 @@ count = 0
 ix=0
 
 
-refreshRate=1.0/30.0
-FILTER_SIZE = 5
+refreshRate=1.0/25.0
+FILTER_SIZE = 4
 
 
 
@@ -176,8 +176,12 @@ class MainWindow(Screen):
             if self.EnableGraph:
                 t_i=(datetime.datetime.now()-t_start).total_seconds()
                 read=ads2.read_sequence(CH_SEQUENCE) * CH_GAIN/FILTER_SIZE
+                lecAnt=read
                 for i in list(range(FILTER_SIZE -1)):
-                    read+=ads2.read_sequence(CH_SEQUENCE) *  CH_GAIN/FILTER_SIZE
+                    lec=ads2.read_sequence(CH_SEQUENCE) *  CH_GAIN/FILTER_SIZE
+                    if(np.linalg.norm(lec-lecAnt)<0.1):
+                        read=read+lec                                      
+                    lecAnt=lec
                 t=(datetime.datetime.now()-t_start).total_seconds()
                 if t>= 20:
                    self.plot_p.points.clear()
@@ -264,7 +268,8 @@ class MainWindow(Screen):
             chip_ID = ads2.chip_ID
             CH_GAIN = ads2.v_per_digit * GAIN_CAL
             self.EnableGraph = True
-            
+            self.parameters = VentilatorParams()
+
     def showButton(self):
         if self.EnableShow:
             self.ids['mostrar'].background_color =  NEGRO
