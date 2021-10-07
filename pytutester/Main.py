@@ -53,7 +53,7 @@ count = 0
 ix=0
 
 
-refreshRate=1.0/25.0
+refreshRate=1.0/30.0
 FILTER_SIZE = 4
 
 
@@ -190,8 +190,10 @@ class MainWindow(Screen):
                    t_start = datetime.datetime.now()
                    t=t-t_i
                    t_i=0
-                   self.parameters.time_last=0
-                   self.parameters.state=None
+                  # self.parameters.time_last=0
+                  # self.parameters.state=0
+                   self.parameters = VentilatorParams()
+
                    
                 self.parameters.time =(t+t_i)/2   
                 self.parameters.pressure  =105.0/4.0*(read[1]-0.5) - 5.0
@@ -263,7 +265,7 @@ class MainWindow(Screen):
             self.ids['graficar'].background_color = VERDE
             t_start=datetime.datetime.now()
             ads2 = ADS1256(myconfig_2)
-            ads2.drate = DRATE_500  
+            ads2.drate = DRATE_1000  
             ads2.cal_self()
             chip_ID = ads2.chip_ID
             CH_GAIN = ads2.v_per_digit * GAIN_CAL
