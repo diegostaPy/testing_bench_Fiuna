@@ -53,8 +53,8 @@ count = 0
 ix=0
 
 
-refreshRate=1.0/30.0
-FILTER_SIZE = 4
+refreshRate=1.0/25.0
+FILTER_SIZE = 6
 
 
 
@@ -68,25 +68,42 @@ class RecordWindow(Screen):
     file_name = ObjectProperty(None)
     min = ObjectProperty(None)
     sec = ObjectProperty(None)
-   
+    lugar= ObjectProperty(None)
+    
     def accept(self):
-        global Recording,RecordingCanceled, CSV_file_name, record_time,Sampleproc 
-        try:
-            print(self.min.text, self.sec.text,self.file_name.text)
-            record_time = datetime.datetime.now() + timedelta(minutes=int(self.min.text), seconds=int(self.sec.text))
-            if self.file_name.text != '':
-                CSV_file_name = self.file_name.text+'.csv'
-            self.file_name.text = ''
-            self.min.text = ''
-            self.sec.text = ''
-            Recording= True
-            Sampleproc = Popen("python3 sampler.py " + CSV_file_name,stdout=PIPE, stderr=PIPE, shell=True,preexec_fn=os.setsid)
-            App.get_running_app().root.current = "main"
-            self.manager.transition.direction = "up"
-        except:
+        global Recording,RecordingCanceled, path,CSV_file_name, record_time,Sampleproc 
+        print("spin text",self.lugar.text)
+        print("spin",self.lugar.values)
+        print(self.lugar.text+"/"+self.file_name.text)
+        if(os.path.normpath(self.lugar.text+"/"+self.file_name.text)):
+            if self.min.text.isnumeric()and int(self.min.text)<60:
+                if self.sec.text.isnumeric()and int(self.sec.text)<60:
+                    if(int(self.min.text)>0 or int(self.sec.text)>0):
+                        record_time = datetime.datetime.now() + timedelta(minutes=int(self.min.text), seconds=int(self.sec.text))
+                        if self.file_name.text != '':
+                            path=self.lugar.text
+                            CSV_file_name = self.file_name.text+'.csv'
+                        Recording= True
+                        Sampleproc = Popen("python3 sampler.py " + path+"/"+CSV_file_name,stdout=PIPE, stderr=PIPE, shell=True,preexec_fn=os.setsid)
+                        App.get_running_app().root.current = "main"
+                        self.manager.transition.direction = "up"
+                    else:
+                        AdvertenciaPopUp().open()   
+                else:
+                    AdvertenciaPopUp().open()  
+            else:
+                AdvertenciaPopUp().open()     
+        else:
             AdvertenciaPopUp().open()
+            
              
-
+    def update_level_spinner(self):
+        folderContents =os.listdir("/media/pi")
+        folderContents.append("/home/pi/Desktop")
+        values = folderContents
+        values.sort()
+        print(values)
+        return values
 
     def cancel(self):
         global RecordingCanceled
@@ -96,28 +113,36 @@ class ClockText(Label):
     def __init__(self, *args, **kwargs):
         super(ClockText, self).__init__(*args, **kwargs)
         Clock.schedule_interval(self.update, 2)
-
+       
     def update(self, *args):
         self.text = time.strftime('%I:%M:%S %p')
 class TemHumText(Label):
     def __init__(self, *args, **kwargs):
         super(TemHumText, self).__init__(*args, **kwargs)
         Clock.schedule_interval(self.update, 10)
+        self.temp=0
+        self.hum=0
+        time.sleep(0.01)
         self.readData()
 
     def update(self, *args):
         self.readData()
     def readData(self, *args):
         bus = SMBus(1)
-        read = bus.read_byte_data(I2C_ADDRESS,READ_TEMPERATURE_CMD)
-        temp=read<<8
-        read = bus.read_byte_data(I2C_ADDRESS,READ_TEMPERATURE_CMD)
-        temp=temp+read
-        read = bus.read_byte_data(I2C_ADDRESS,READ_HUMIDITY_CMD)
-        hum=read<<8
-        read = bus.read_byte_data(I2C_ADDRESS,READ_HUMIDITY_CMD)
-        hum=hum+read
-        self.text = str(temp/100)+"°C "+str(hum/100)+" %"
+        try:
+            read = bus.read_byte_data(I2C_ADDRESS,READ_TEMPERATURE_CMD)
+            temp=read<<8
+            read = bus.read_byte_data(I2C_ADDRESS,READ_TEMPERATURE_CMD)
+            self.temp=temp+read
+            time.sleep(0.01)
+            read = bus.read_byte_data(I2C_ADDRESS,READ_HUMIDITY_CMD)
+            hum=read<<8
+            read = bus.read_byte_data(I2C_ADDRESS,READ_HUMIDITY_CMD)
+            self.hum=hum+read
+        except IOError:
+            print("error i2c")
+        
+        self.text = str(self.temp/100)+"°C "+str(self.hum/100)+" %"
 class ConfigTab(TabbedPanel):
     pass
    
@@ -157,14 +182,14 @@ class MainWindow(Screen):
         Clock.schedule_interval(self.update,refreshRate)
 
     def update(self, *args):
-        global Recording,RecordingCanceled,ix, record_time,t_start,Sampleproc,CSV_file_name
+        global Recording,RecordingCanceled,ix, path,record_time,t_start,Sampleproc,CSV_file_name
         if self.EnableRecord: 
             if Recording:
                 self.ids['grabar'].background_color = VERDE
                 self.ids['grabar'].text = str(record_time - datetime.datetime.now())[2:7]
                 if (record_time - datetime.datetime.now()) < datetime.timedelta(0):
                     os.killpg(os.getpgid(Sampleproc.pid), 15)
-                    Sampleproc = Popen("python3 computeStats.py " +CSV_file_name,stdout=PIPE, stderr=PIPE, shell=True,preexec_fn=os.setsid)
+                    Sampleproc = Popen("python3 computeStats.py " +CSV_file_name+" "+path,stdout=PIPE, stderr=PIPE, shell=True,preexec_fn=os.setsid)
                     Recording=False 
                     self.EnableRecord = False
             if RecordingCanceled:
@@ -175,13 +200,18 @@ class MainWindow(Screen):
             self.ids['grabar'].background_color = NEGRO
             if self.EnableGraph:
                 t_i=(datetime.datetime.now()-t_start).total_seconds()
-                read=ads2.read_sequence(CH_SEQUENCE) * CH_GAIN/FILTER_SIZE
+                read=ads2.read_sequence(CH_SEQUENCE) * CH_GAIN
                 lecAnt=read
+                lecAnt2=lecAnt
+                lecturas=1
                 for i in list(range(FILTER_SIZE -1)):
-                    lec=ads2.read_sequence(CH_SEQUENCE) *  CH_GAIN/FILTER_SIZE
-                    if(np.linalg.norm(lec-lecAnt)<0.1):
-                        read=read+lec                                      
+                    lec=ads2.read_sequence(CH_SEQUENCE) *  CH_GAIN
+                    if(np.linalg.norm(lec-lecAnt2)<0.1):
+                        read=read+lec
+                        lecturas+=1
+                    lecAnt2=lecAnt
                     lecAnt=lec
+                read=read/lecturas   
                 t=(datetime.datetime.now()-t_start).total_seconds()
                 if t>= 20:
                    self.plot_p.points.clear()
@@ -265,7 +295,7 @@ class MainWindow(Screen):
             self.ids['graficar'].background_color = VERDE
             t_start=datetime.datetime.now()
             ads2 = ADS1256(myconfig_2)
-            ads2.drate = DRATE_1000  
+            ads2.drate = DRATE_500  
             ads2.cal_self()
             chip_ID = ads2.chip_ID
             CH_GAIN = ads2.v_per_digit * GAIN_CAL

@@ -76,8 +76,10 @@ class VentilatorParams():
         self.NewStatsReady=0
         
     def defineState(self):
-        if self.flow >FLOW_THRESHOLD_H and self.flow_last<FLOW_THRESHOLD_H and(self.count-self.countE>20)and (self.state==0 or self.state==2) :
+        #print(str(self.state)+" "+str(self.flow)+" "+str(self.flow_last)+" "+str(self.count-self.countE))
+        if self.flow >FLOW_THRESHOLD_H and self.flow_last<FLOW_THRESHOLD_H and(self.count-self.countE>5)and (self.state==0 or self.state==2) :
             if (self.state==2):
+            #    print(self.ti,self.te,self.tstartI,self.tstartE,self.time)
                 self.calculateStats()
             self.state=1
             self.tstartI=self.time
@@ -88,7 +90,7 @@ class VentilatorParams():
             self.fio2_accu=0
             self.pif_i=self.flow
             
-        elif self.flow <-FLOW_THRESHOLD_L  and self.flow_last>-FLOW_THRESHOLD_L and(self.count-self.countE>20)and self.state==1:   
+        elif self.flow <-FLOW_THRESHOLD_L  and self.flow_last>-FLOW_THRESHOLD_L and(self.count-self.countE>5)and self.state==1:   
             self.state=2
             self.MinPE=self.pressure
             self.ti=self.time-self.tstartI

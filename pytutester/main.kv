@@ -53,6 +53,8 @@ WindowManager:
     min: duration_min
     sec: duration_sec
     id: record_window
+    lugar: spinner_id
+
     size_hint: 1, 1
 
     BoxLayout:
@@ -119,9 +121,9 @@ WindowManager:
             Spinner:
                 id: spinner_id
                 pos_hint: {'center': (.5, .5)}
-                text: "."
-                values: ["."]
-
+                text: "lugar"
+                values: root.update_level_spinner()
+               
             Label:
                 text: ''
            

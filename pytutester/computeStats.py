@@ -19,9 +19,10 @@ def hyst(x, th_lo, th_hi, initial = False):
     return np.where(cnt, hi[ind[cnt-1]], initial)
 
 filename = sys.argv[1]
+path= sys.argv[2]
 
 
-medidas=pd.read_csv(filename,comment="#")
+medidas=pd.read_csv(path+"/"+filename,comment="#")
 
 medidas['time']=medidas['Timestamp'].values-medidas['Timestamp'].values[0]
 medidas.loc[medidas['flow'].values>100,'flow']=100
@@ -74,7 +75,7 @@ for ini,end,next_ini in zip(Ti_ini[:-1].tolist(),Ti_end[:-1].tolist(),Ti_ini[1:-
     dfBancoStats.loc[k,'Vti l']=(integrate.simps(medidas['flow_mlpf'].values[ini:(end-1)]/60, medidas.time.values[ini:(end-1)])).astype(float)
     dfBancoStats.loc[k,'Vte l']=(integrate.simps(medidas['flow_mlpf'].values[end:next_ini]/60, medidas.time.values[end:next_ini]) ).astype(float) 
     k=k+1
-dfBancoStats.to_csv("stats_"+filename)             
+dfBancoStats.to_csv(path+"/"+"stats_"+filename)             
     
 
 
