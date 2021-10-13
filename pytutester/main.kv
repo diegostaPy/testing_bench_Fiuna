@@ -64,7 +64,7 @@ WindowManager:
         BoxLayout:
             Label:
                 font_size: self.height/1.5
-                text: "Nombre del archivo: "
+                text: "Filename: "
                 pos_hint: {"x":0, "top":1}
                 size_hint: 1, 0.5
 
@@ -74,27 +74,30 @@ WindowManager:
                 size_hint: 1, 0.5
                 height: self.height
                 pos_hint: {"x":0.5, "top":1}
-                hint_text:'Name'
+                hint_text:'Filename'
+                halign:"left"
                 multiline: False
                 write_tab: False
 
         BoxLayout:
             Label:
                 font_size: self.height/1.5
-                text: "Duracion: "
+                text: "Duration: "
+                halign:"left"
                 pos_hint: {"x":0, "top":1}
                 size_hint: 1, 0.5
         
             BoxLayout:
                 spacing: '0sp'
-                padding: 0, 0, 190, 0
+                padding: 0, 0, 120, 0
                 TextInput:
                     id: duration_min
-                    font_size: self.height/1.5
+                    font_size: self.height/1.8
                     size_hint: 1, 0.5
                     height: self.height
                     pos_hint: {"x":0.5, "top":1}
                     hint_text:'Min'
+                    halign:"center"
                     multiline: False
                     write_tab: False
 
@@ -107,21 +110,30 @@ WindowManager:
             
                 TextInput:
                     id: duration_sec
-                    font_size: self.height/1.5
+                    font_size: self.height/1.8
                     size_hint: 1, 0.5
                     height: self.height
                     pos_hint: {"x":0.5, "top":1}
                     hint_text:'Sec'
+                    halign:"center"
                     multiline: False
                     write_tab: False
-
+            
         BoxLayout:
-            orientation: 'vertical'
+           
+            Label:
+                font_size: self.height/1.5
+                text: "Path: "
+                halign:"left"
+                pos_hint: {"x":0, "top":1}
+                size_hint: 1, 0.5
+        
 
             Spinner:
                 id: spinner_id
-                pos_hint: {'center': (.5, .5)}
-                text: "lugar"
+                pos_hint: {"x":0.8, "top":1}
+                size_hint: 1, 0.5
+                text: "/home/pi/Desktop"
                 values: root.update_level_spinner()
                
             Label:
@@ -133,7 +145,7 @@ WindowManager:
 
             Button:
                 font_size: self.height/2
-                text: "Aceptar"
+                text: "Start"
                 size_hint: 0.5, 0.5
                 on_release:
                     root.accept()
@@ -141,7 +153,7 @@ WindowManager:
 
             Button:
                 font_size: self.height/2
-                text: "Cancelar"
+                text: "Cancel"
                 size_hint: 0.5, 0.5
                 on_release:
                     root.cancel()
@@ -176,7 +188,7 @@ WindowManager:
                 Graph:
                     id: graph_p
                     xlabel: ''
-                    ylabel: 'Presion (cmH20)'
+                    ylabel: 'Pressure(cmH20)'
                     x_ticks_major: 5
                     y_ticks_major: 10
                     y_grid_label: True
@@ -193,7 +205,7 @@ WindowManager:
                 Graph:
                     id: graph_f
                     xlabel: ''
-                    ylabel: 'Flujo (l/min)'
+                    ylabel: 'Flow (l/min)'
                     x_ticks_major: 5
                     y_ticks_major: 20
                     y_grid_label: True
@@ -209,8 +221,8 @@ WindowManager:
 
                 Graph:
                     id: graph_v
-                    xlabel: 'Tiempo (s)'
-                    ylabel: 'Volumen (ml)'
+                    xlabel: 'Time (s)'
+                    ylabel: 'Volume (ml)'
                     x_ticks_major: 5
                     y_ticks_major: 100
                     y_grid_label: True
@@ -620,23 +632,23 @@ WindowManager:
                         size: self.size
                 ButtonNew:
                     id: graficar
-                    text: "Gráfica"
+                    text: "Graph"
                     size_hint: 1, 1
                     on_release: root.graphButton()
 
                 ButtonNew:
                     id: mostrar
-                    text: "Monitoreo"
+                    text: "Breath Views"
                     halign: 'center'
                     size_hint: 1, 1
                     on_release: root.showButton()
 
                 ButtonNew:
                     id: grabar
-                    text: "Grabación" 
+                    text: "Save" 
+                    halign: 'center'
                     size_hint: 1, 1
-                    on_release:
-                        root.recordButton()
+                    on_release: root.recordButton()
 
                 TemHumText:
                     id: temhumtext
@@ -664,7 +676,7 @@ WindowManager:
                 ButtonNew:
                     id: salir
                     font_size: self.width/6
-                    text: "Salir"
+                    text: "Exit"
                     size_hint: 1, 1
                     on_release: root.exitButton()
 

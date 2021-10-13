@@ -40,7 +40,7 @@ Config.set('kivy', 'keyboard_mode', 'systemanddock')
 #Config.set('graphics', 'height', '720')
 #Config.set('graphics', 'width', '1080')
 Config.set('graphics', 'fullscreen', '1')
-Config.set('graphics', 'show_cursor', '0')
+Config.set('graphics', 'show_cursor', '1')
 Config.set('graphics', 'height', '480')
 Config.set('graphics', 'width', '800')
 
@@ -196,7 +196,7 @@ class MainWindow(Screen):
                 self.EnableRecord = False
                 RecordingCanceled=False
         else:
-            self.ids['grabar'].text = "Grabación"
+            self.ids['grabar'].text = "Save"
             self.ids['grabar'].background_color = NEGRO
             if self.EnableGraph:
                 t_i=(datetime.datetime.now()-t_start).total_seconds()
