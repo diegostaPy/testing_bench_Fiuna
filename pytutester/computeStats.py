@@ -22,11 +22,12 @@ filename = sys.argv[1]
 path= sys.argv[2]
 
 
-medidas=pd.read_csv(path+"/"+filename,comment="#")
-
-medidas['time']=medidas['Timestamp'].values-medidas['Timestamp'].values[0]
-medidas.loc[medidas['flow'].values>100,'flow']=100
-medidas.loc[medidas['flow'].values<-100,'flow']=-100
+medidas=pd.read_csv(path+"/"+filename,comment="#",names=['time', ' pressure',' flow','fio2'],skiprows=2)
+print(medidas[0])
+medidas['time']=medidas['time'].values-medidas['time'].values[0]
+medidas.loc[medidas[' flow'].values>100,' flow']=100
+medidas.loc[medidas[' flow'].values<-100,' flow']=-100
+medidas.set_index(["time"],drop=True, inplace=True)
 medidas['time']=medidas.index.values
 medidas['flow_mlpfE']=medidas[' flow'].values
 medidas['flow_mlpfE']=signal.medfilt(medidas['flow_mlpfE'].values,11)
@@ -41,6 +42,7 @@ medidas.index = pd.to_datetime( medidas.index, unit='s')
 medidas=medidas.resample("2.5ms").median()
 medidas = medidas.interpolate(method='linear').dropna()
 medidas.reset_index(inplace = True, drop = True)
+
 th_hi=5#0.5
 th_lo=-5#-0.1
 cross= hyst(medidas['flow_mlpf'].values, th_lo, th_hi)
@@ -56,8 +58,9 @@ if(Ti_ini[0]>Ti_end[0]):
     Ti_end=Ti_end[1:]
 k=0
 medidas['volumen_mlpf']=np.zeros_like(medidas['flow_mlpf'].values)
-dfBancoStats=pd.DataFrame(columns=['Ti s', 'Te s','Vti l','Vte l', 'I:E  ', 'BPM  ','PIP cmH2O','PEEP cmH2O','PIF lmin','PEF lmin','FiO2'])
-    
+dfBancoStats=pd.DataFrame(columns=['Ti s', 'Te s','Vti l','Vte l', 'I:E  ', 'BPM  ','PIP cmH2O','PEEP cmH2O','PIF lmin','PEF lmin','FiO2mean','FiO2min','FiO2max'])
+print("tenemos N registros")
+print(len(T_ini))
 for ini,end,next_ini,kk in zip(Ti_ini[:-1].tolist(),Ti_end[:-1].tolist(),Ti_ini[1:-1].tolist(),np.arange(len(Ti_end[:-1]))):
     ini=ini-250+np.where(medidas.flow_mlpf.values[ini-250:ini]>0.1)[0][0]
     next_ini=next_ini-250+np.where(medidas.flow_mlpf.values[next_ini-250:next_ini]>0.1)[0][0]
@@ -73,10 +76,9 @@ for ini,end,next_ini,kk in zip(Ti_ini[:-1].tolist(),Ti_end[:-1].tolist(),Ti_ini[
         continue
     Tt= medidas.time.values[next_ini]-medidas.time.values[ini]
     dfBancoStats.append(pd.Series(), ignore_index=True)
-    dfBancoStats.loc[k,'n']=int(i)
+
     dfBancoStats.loc[k,'time']=medidas.time.values[ini]
 
-    dfBancoStats.loc[k,'prueba']=name
     dfBancoStats.loc[k,'BPM  ']=(60.0/ Tt).astype(float)
     dfBancoStats.loc[k,'Ti s']=(medidas.time.values[end]-medidas.time.values[ini]).astype(float)
     dfBancoStats.loc[k,'Te s']=(medidas.time.values[next_ini]-medidas.time.values[end]).astype(float)
@@ -87,7 +89,12 @@ for ini,end,next_ini,kk in zip(Ti_ini[:-1].tolist(),Ti_end[:-1].tolist(),Ti_ini[
     dfBancoStats.loc[k,'PEF lmin']=-(medidas.flow_mlpf.values[end:next_ini].min()).astype(float)
     dfBancoStats.loc[k,'Vti l']=(integrate.simps(medidas['flow_mlpf'].values[ini:(end-1)]/60, medidas.time.values[ini:(end-1)])).astype(float)
     dfBancoStats.loc[k,'Vte l']=-(integrate.simps(medidas['flow_mlpf'].values[end:next_ini]/60, medidas.time.values[end:next_ini]) ).astype(float) 
+    dfBancoStats.loc[k,'FiO2mean']=(medidas.fio2.values[ini:next_ini].mean()).astype(float)
+    dfBancoStats.loc[k,'FiO2min']=(medidas.fio2.values[ini:next_ini].min()).astype(float)
+    dfBancoStats.loc[k,'FiO2max']=(medidas.fio2.values[ini:next_ini].max()).astype(float)
+
     k=k+1
+print("listo")
 dfBancoStats.to_csv(path+"/"+"stats_"+filename)             
     
 
